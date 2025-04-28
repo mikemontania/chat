@@ -1,0 +1,30 @@
+# Entornos virtuales
+env/
+venv/
+
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Archivos de datos
+*.csv
+*.tsv
+*.log
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Otros
+.env
+*.bak
+*.tmp
+
+# Visual Studio Code
+.vscode/
+
+# Archivos de salida
+*.out
+*.checkpoint
