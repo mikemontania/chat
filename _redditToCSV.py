@@ -15,7 +15,7 @@ subreddits = list(reddit.subreddits.popular(limit=100))
 
 # Diccionario de categorías
 categories = {
-    'Tecnología': ['python', 'programming', 'datascience', 'technology', 'coding'],
+    'Tecnología': ['python', 'programming', 'programming', 'datascience', 'technology', 'coding'],
     'Ciencia': ['science', 'space', 'biology', 'physics', 'research'],
     'Entretenimiento': ['movies', 'tv', 'gaming', 'music', 'books'],
     'Noticias': ['news', 'worldnews', 'politics', 'currentevents'],
@@ -29,6 +29,7 @@ def classify_subreddit(subreddit):
         if any(keyword in description for keyword in keywords):
             return category
     return "Otros"  # Si no coincide con ninguna categoría
+
 # Inicializar analizador VADER
 analyzer = SentimentIntensityAnalyzer()
 
@@ -54,6 +55,12 @@ def detect_action(text):
 def clean_text(text):
     return text.replace('\n', ' ').replace('\r', ' ').strip()
 
+def clean_and_filter_comment(comment):
+    # Filtrar comentarios eliminados
+    if '[removed]' in comment.body or '[deleted]' in comment.body:
+        return None
+    return clean_text(comment.body)
+
 # Crear carpeta si no existe
 output_folder = "01 datos_descargados"
 os.makedirs(output_folder, exist_ok=True)
@@ -75,20 +82,30 @@ for subreddit in subreddits:
             submission.comments.replace_more(limit=0)
 
             for comment in submission.comments.list():
+                # Limpiar y filtrar el comentario
+                input_text = clean_and_filter_comment(comment)
+                if not input_text:
+                    continue  # Si el comentario fue filtrado, omitirlo
+
+                # Procesar las respuestas
+                responses = []
                 for reply in comment.replies:
-                    input_text = clean_text(comment.body)
-                    output_text = clean_text(reply.body)
-                    contexto = clean_text(submission.title)
-
-                    input_emotion = detect_emotion(input_text)
-                    input_action = detect_action(input_text)
-
-                    # Guardar el par de diálogo
-                    writer.writerow([
-                        input_text,
-                        output_text,
-                        contexto,
-                        "en",
-                        input_emotion,
-                        input_action
-                    ])
+                    output_text = clean_and_filter_comment(reply)
+                    if output_text:
+                        # Obtener emociones y acciones para cada respuesta
+                        input_emotion = detect_emotion(input_text)
+                        input_action = detect_action(input_text)
+                        responses.append((output_text, input_emotion, input_action))
+                
+                # Si hay respuestas, almacenarlas
+                if responses:
+                    for response in responses:
+                        output_text, input_emotion, input_action = response
+                        writer.writerow([
+                            input_text,
+                            output_text,
+                            clean_text(submission.title),
+                            "en",
+                            input_emotion,
+                            input_action
+                        ])
